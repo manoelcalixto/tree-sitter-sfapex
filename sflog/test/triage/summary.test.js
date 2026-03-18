@@ -89,6 +89,28 @@ test("reports suspicious serialized error payloads", () => {
   ]);
 });
 
+test("classifies exception payloads stored in variables as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|err|"System.NullPointerException: Attempt to de-reference a null object"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
+test("does not classify exception labels stored in variables as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|label|"System.NullPointerException used as a label"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
 test("does not classify successful status payloads as errors", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"HttpResponse [statusCode=200, message=OK]"|0x3722c840

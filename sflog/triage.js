@@ -83,6 +83,10 @@ const DIAGNOSTICS = [
         return true;
       }
 
+      if (eventType === "VARIABLE_ASSIGNMENT") {
+        return looksLikeExceptionPayload(extractVariableAssignmentValue(line));
+      }
+
       return (
         eventType === "EXCEPTION_THROWN" &&
         /[A-Za-z0-9_.]+Exception\b|Assertion Failed/i.test(line)
@@ -126,6 +130,10 @@ function looksLikeSerializedErrorPayload(text) {
     /\bstatusCode=(?:[A-Z][A-Z0-9_]+)\b/.test(text) ||
     /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(text)
   );
+}
+
+function looksLikeExceptionPayload(text) {
+  return /(?:^|["\s])(?:[A-Za-z0-9_$.]+Exception):\s+\S/.test(text);
 }
 
 function extractEventType(line) {
