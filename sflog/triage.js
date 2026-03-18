@@ -16,7 +16,15 @@ const DIAGNOSTICS = [
     summary: "Validation failure",
     severity: "error",
     priority: 1,
-    test(line) {
+    test(line, eventType) {
+      if (
+        eventType !== "VARIABLE_ASSIGNMENT" &&
+        eventType !== "EXCEPTION_THROWN" &&
+        eventType !== "FATAL_ERROR"
+      ) {
+        return false;
+      }
+
       return /FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION/i.test(
         line
       );
@@ -82,7 +90,7 @@ function extractEventType(line) {
 }
 
 function isLogEntryStart(line) {
-  return /^\d{2}:\d{2}:\d{2}\.\d+\s+\([^)]+\)\|[^|]+\|/.test(line);
+  return /^\d{2}:\d{2}:\d{2}\.\d+(?:\s+\([^)]+\))?\|[^|]+\|/.test(line);
 }
 
 function splitLogEntries(logText) {

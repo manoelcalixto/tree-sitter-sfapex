@@ -29,6 +29,18 @@ test("reports a fatal exception for uncategorized fatal errors", () => {
   ]);
 });
 
+test("reports fatal exceptions when timestamps omit duration", () => {
+  const summary = summarizeLog(`
+17:11:53.0|EXCEPTION_THROWN|[834]|System.IllegalArgumentException: DeveloperName is required
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("prefers assertion failures over a generic fatal exception", () => {
   const summary = summarizeLog(`
 17:11:53.0 (1600140462)|FATAL_ERROR|System.AssertException: Assertion Failed
@@ -116,6 +128,16 @@ test("ignores execute anonymous source lines outside structured log events", () 
   const summary = summarizeLog(`
 Execute Anonymous:
 System.debug('FIELD_CUSTOM_VALIDATION_EXCEPTION');
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("does not classify user debug literals as validation failures", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140462)|USER_DEBUG|[5]|DEBUG|FIELD_CUSTOM_VALIDATION_EXCEPTION used as a literal
 `);
 
   assert.equal(summary.hasErrors, false);
