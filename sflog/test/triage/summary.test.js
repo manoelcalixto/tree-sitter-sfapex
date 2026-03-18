@@ -101,6 +101,18 @@ test("classifies exception payloads stored in variables as fatal diagnostics", (
   ]);
 });
 
+test("classifies bare exception type names stored in variables as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|typeName|"System.NullPointerException"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("classifies assert exceptions stored in variables as assertion failures", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|err|"System.AssertException: Assertion Failed"|0x3722c840
@@ -129,6 +141,18 @@ test("classifies dml exception payloads stored in variables with specific reason
 test("classifies plain validation messages stored in variables", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"FIELD_CUSTOM_VALIDATION_EXCEPTION, Could not save record"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Validation failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "validation_failure",
+  ]);
+});
+
+test("classifies bare validation status codes stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|statusCode|"FIELD_CUSTOM_VALIDATION_EXCEPTION"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, true);

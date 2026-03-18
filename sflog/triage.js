@@ -141,7 +141,12 @@ function looksLikeSerializedErrorPayload(text) {
 }
 
 function looksLikeExceptionPayload(text) {
-  return /(?:^|["\s])(?:[A-Za-z0-9_$.]+Exception):\s+\S/.test(text);
+  const normalized = normalizeVariableValue(text);
+
+  return (
+    /^[A-Za-z0-9_$.]+Exception:\s+\S/.test(normalized) ||
+    /^[A-Za-z0-9_$.]+Exception$/.test(normalized)
+  );
 }
 
 function looksLikeErrorBearingVariableValue(text) {
@@ -149,8 +154,15 @@ function looksLikeErrorBearingVariableValue(text) {
 }
 
 function looksLikePlainValidationMessage(text) {
-  return /\b(?:FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION)\b(?=[,:])/.test(
-    text
+  const normalized = normalizeVariableValue(text);
+
+  return (
+    /^(?:FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION)$/.test(
+      normalized
+    ) ||
+    /\b(?:FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION)\b(?=[,:])/.test(
+      normalized
+    )
   );
 }
 
@@ -161,7 +173,15 @@ function looksLikePlainDmlMessage(text) {
 }
 
 function looksLikePlainAssertionMessage(text) {
-  return /\bAssertion Failed\b(?=[:.])/i.test(text);
+  return /\bAssertion Failed\b(?=[:.])/i.test(normalizeVariableValue(text));
+}
+
+function normalizeVariableValue(text) {
+  const normalized = String(text ?? "").trim();
+  if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    return normalized.slice(1, -1).trim();
+  }
+  return normalized;
 }
 
 function extractEventType(line) {
