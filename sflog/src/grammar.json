@@ -191,7 +191,7 @@
     },
     "apex_code": {
       "type": "PATTERN",
-      "value": "[^\\n]+"
+      "value": "[^\\r\\n]+"
     },
     "log_entry": {
       "type": "SEQ",
