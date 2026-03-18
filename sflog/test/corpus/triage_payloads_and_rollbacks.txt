@@ -6,6 +6,8 @@ Payloads And Rollbacks
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|"Error [statusCode=FIELD_CUSTOM_VALIDATION_EXCEPTION, code=null, message=Could not save..., fields=[Name]]"|0x3722c840
 17:11:52.525 (530873859)|ROLLBACK|[111]|Savepoint restored
 17:11:52.525 (530900000)|DML_END|[111]
+17:11:52.1 (6438204)|METHOD_ENTRY|[31]||System.OrgLimits.getMap()
+17:11:52.1 (96974034)|METHOD_EXIT|[31]||System.OrgLimits.getMap()
 
 ---
 
@@ -73,4 +75,30 @@ Payloads And Rollbacks
     (event_identifier
       (identifier))
     (location
-      (number))))
+      (number)))
+  (log_entry
+    (timestamp
+      (time)
+      (duration
+        (number)))
+    (event_identifier
+      (identifier))
+    (location
+      (number))
+    (event_details
+      (event_detail)
+      (event_detail
+        (event_detail_value))))
+  (log_entry
+    (timestamp
+      (time)
+      (duration
+        (number)))
+    (event_identifier
+      (identifier))
+    (location
+      (number))
+    (event_details
+      (event_detail)
+      (event_detail
+        (event_detail_value)))))

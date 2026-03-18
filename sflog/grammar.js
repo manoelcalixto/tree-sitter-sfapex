@@ -72,7 +72,7 @@ module.exports = grammar({
         field("available", $.number)
       ),
     event_details: ($) => repeat1($.event_detail),
-    event_detail: ($) => seq("|", $.event_detail_value),
+    event_detail: ($) => seq("|", optional($.event_detail_value)),
 
     // TODO: this will need some handling for "|" in strings and other possible pattern breakers, this is the wild stuff
     event_detail_value: ($) =>

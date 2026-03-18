@@ -367,8 +367,16 @@
           "value": "|"
         },
         {
-          "type": "SYMBOL",
-          "name": "event_detail_value"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "event_detail_value"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
