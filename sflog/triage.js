@@ -7,8 +7,11 @@ const DIAGNOSTICS = [
     test(line, eventType) {
       if (eventType === "VARIABLE_ASSIGNMENT") {
         const candidate = extractVariableAssignmentValue(line);
-        return looksLikeExceptionPayload(candidate) &&
-          /AssertException|Assertion Failed/i.test(candidate);
+        return (
+          (looksLikeExceptionPayload(candidate) ||
+            looksLikePlainAssertionMessage(candidate)) &&
+          /AssertException|Assertion Failed/i.test(candidate)
+        );
       }
 
       return (
@@ -38,7 +41,8 @@ const DIAGNOSTICS = [
 
       if (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        !looksLikeErrorBearingVariableValue(candidate)
+        !looksLikeErrorBearingVariableValue(candidate) &&
+        !looksLikePlainValidationMessage(candidate)
       ) {
         return false;
       }
@@ -69,7 +73,8 @@ const DIAGNOSTICS = [
 
       if (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        !looksLikeErrorBearingVariableValue(candidate)
+        !looksLikeErrorBearingVariableValue(candidate) &&
+        !looksLikePlainDmlMessage(candidate)
       ) {
         return false;
       }
@@ -93,10 +98,7 @@ const DIAGNOSTICS = [
         return looksLikeExceptionPayload(extractVariableAssignmentValue(line));
       }
 
-      return (
-        eventType === "EXCEPTION_THROWN" &&
-        /[A-Za-z0-9_.]+Exception\b|Assertion Failed/i.test(line)
-      );
+      return eventType === "EXCEPTION_THROWN";
     },
   },
   {
@@ -144,6 +146,22 @@ function looksLikeExceptionPayload(text) {
 
 function looksLikeErrorBearingVariableValue(text) {
   return looksLikeSerializedErrorPayload(text) || looksLikeExceptionPayload(text);
+}
+
+function looksLikePlainValidationMessage(text) {
+  return /\b(?:FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION)\b(?=[,:])/.test(
+    text
+  );
+}
+
+function looksLikePlainDmlMessage(text) {
+  return /\b(?:Insert|Update|Upsert|Delete|Merge) failed\. First exception on row\b/i.test(
+    text
+  );
+}
+
+function looksLikePlainAssertionMessage(text) {
+  return /\bAssertion Failed\b(?=[:.])/i.test(text);
 }
 
 function extractEventType(line) {

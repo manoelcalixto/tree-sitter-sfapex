@@ -126,6 +126,42 @@ test("classifies dml exception payloads stored in variables with specific reason
   ]);
 });
 
+test("classifies plain validation messages stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"FIELD_CUSTOM_VALIDATION_EXCEPTION, Could not save record"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Validation failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "validation_failure",
+  ]);
+});
+
+test("classifies plain dml messages stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"Insert failed. First exception on row 0; first error: REQUIRED_FIELD_MISSING, Required fields are missing: [Name]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "DML failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "dml_failure",
+  ]);
+});
+
+test("classifies plain assertion messages stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"Assertion Failed: expected 1, got 2"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Assertion failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "assertion_failure",
+  ]);
+});
+
 test("does not classify exception labels stored in variables as fatal diagnostics", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|label|"System.NullPointerException used as a label"|0x3722c840
@@ -139,6 +175,18 @@ test("does not classify exception labels stored in variables as fatal diagnostic
 test("treats no-detail fatal log entries as fatal diagnostics", () => {
   const summary = summarizeLog(`
 17:11:53.0|FATAL_ERROR
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
+test("treats no-detail exception-thrown entries as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:53.0|EXCEPTION_THROWN|[834]
 `);
 
   assert.equal(summary.hasErrors, true);
