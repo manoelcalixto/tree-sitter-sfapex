@@ -35,7 +35,15 @@ const DIAGNOSTICS = [
     summary: "DML failure",
     severity: "error",
     priority: 2,
-    test(line) {
+    test(line, eventType) {
+      if (
+        eventType !== "VARIABLE_ASSIGNMENT" &&
+        eventType !== "EXCEPTION_THROWN" &&
+        eventType !== "FATAL_ERROR"
+      ) {
+        return false;
+      }
+
       return /DmlException|Insert failed|Update failed|Upsert failed|Delete failed|Merge failed|REQUIRED_FIELD_MISSING/i.test(
         line
       );

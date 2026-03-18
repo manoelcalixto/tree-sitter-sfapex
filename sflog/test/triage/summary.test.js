@@ -145,6 +145,16 @@ test("does not classify user debug literals as validation failures", () => {
   assert.deepEqual(summary.reasons, []);
 });
 
+test("does not classify user debug literals as dml failures", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140462)|USER_DEBUG|[5]|DEBUG|Insert failed is just a string literal with REQUIRED_FIELD_MISSING
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
 test("preserves event context for multiline variable assignments", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|payloadStart
