@@ -40,7 +40,7 @@
     "fields": {},
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "event_detail_value",
@@ -334,6 +334,10 @@
   },
   {
     "type": "CALLOUT",
+    "named": false
+  },
+  {
+    "type": "DATA_ACCESS",
     "named": false
   },
   {

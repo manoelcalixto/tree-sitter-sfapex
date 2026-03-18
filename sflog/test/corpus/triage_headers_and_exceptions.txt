@@ -1,0 +1,83 @@
+==================
+Modern Header And Explicit Failures
+==================
+
+64.0 APEX_CODE,FINEST;APEX_PROFILING,INFO;CALLOUT,INFO;DATA_ACCESS,INFO;DB,WARN;NBA,INFO;SYSTEM,DEBUG;VALIDATION,INFO;VISUALFORCE,FINEST;WAVE,INFO;WORKFLOW,INFO
+17:11:53.0 (1034263)|CODE_UNIT_STARTED|[EXTERNAL]|01pC2000001WuA0|Example.testMethod()
+17:11:53.0 (1600140461)|EXCEPTION_THROWN|[834]|System.IllegalArgumentException: DeveloperName is required
+17:11:53.0 (1600140462)|FATAL_ERROR|System.AssertException: Assertion Failed
+
+---
+
+(source_file
+  (log_header
+    (version)
+    (log_level_settings
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))))
+  (log_entry
+    (timestamp
+      (time)
+      (duration
+        (number)))
+    (event_identifier
+      (identifier))
+    (location)
+    (event_details
+      (event_detail
+        (event_detail_value))
+      (event_detail
+        (event_detail_value))))
+  (log_entry
+    (timestamp
+      (time)
+      (duration
+        (number)))
+    (event_identifier
+      (identifier))
+    (location
+      (number))
+    (event_details
+      (event_detail
+        (event_detail_value))))
+  (log_entry
+    (timestamp
+      (time)
+      (duration
+        (number)))
+    (event_identifier
+      (identifier))
+    (event_details
+      (event_detail
+        (event_detail_value)))))

@@ -24,7 +24,8 @@ module.exports = grammar({
         "APEX_PROFILING",
         "VISUALFORCE",
         "SYSTEM",
-        "WAVE"
+        "WAVE",
+        "DATA_ACCESS"
       ),
 
     log_level: ($) =>
@@ -43,7 +44,7 @@ module.exports = grammar({
 
     _anonymous_label: ($) => "Execute Anonymous:",
 
-    apex_code: ($) => /[^\n]+/,
+    apex_code: ($) => /[^\r\n]+/,
 
     log_entry: ($) =>
       seq(
@@ -71,7 +72,7 @@ module.exports = grammar({
         field("available", $.number)
       ),
     event_details: ($) => repeat1($.event_detail),
-    event_detail: ($) => seq("|", $.event_detail_value),
+    event_detail: ($) => seq("|", optional($.event_detail_value)),
 
     // TODO: this will need some handling for "|" in strings and other possible pattern breakers, this is the wild stuff
     event_detail_value: ($) =>

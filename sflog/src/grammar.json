@@ -129,6 +129,10 @@
         {
           "type": "STRING",
           "value": "WAVE"
+        },
+        {
+          "type": "STRING",
+          "value": "DATA_ACCESS"
         }
       ]
     },
@@ -191,7 +195,7 @@
     },
     "apex_code": {
       "type": "PATTERN",
-      "value": "[^\\n]+"
+      "value": "[^\\r\\n]+"
     },
     "log_entry": {
       "type": "SEQ",
@@ -363,8 +367,16 @@
           "value": "|"
         },
         {
-          "type": "SYMBOL",
-          "name": "event_detail_value"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "event_detail_value"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
