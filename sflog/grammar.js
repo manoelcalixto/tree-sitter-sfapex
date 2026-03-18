@@ -43,7 +43,7 @@ module.exports = grammar({
 
     _anonymous_label: ($) => "Execute Anonymous:",
 
-    apex_code: ($) => /[^\n]+/,
+    apex_code: ($) => /[^\r\n]+/,
 
     log_entry: ($) =>
       seq(
