@@ -58,10 +58,45 @@ test("reports suspicious serialized error payloads", () => {
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|"Error [statusCode=UNKNOWN_EXCEPTION, code=null, message=Queueable job failed unexpectedly, fields=[]]"|0x3722c840
 `);
 
-  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.hasErrors, false);
   assert.equal(summary.primaryReason, "Suspicious error payload");
   assert.deepEqual(summary.reasons.map((reason) => reason.code), [
     "suspicious_error_payload",
+  ]);
+});
+
+test("does not classify successful status payloads as errors", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"HttpResponse [statusCode=200, message=OK]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("keeps validation and dml reasons when both appear on one line", () => {
+  const summary = summarizeLog(`
+17:11:52.320 (372616767)|EXCEPTION_THROWN|[131]|System.DmlException: Insert failed. First exception on row 0; first error: FIELD_CUSTOM_VALIDATION_EXCEPTION, Could not save..., fields=[Name]
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Validation failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "validation_failure",
+    "dml_failure",
+  ]);
+});
+
+test("classifies AssertException from EXCEPTION_THROWN as assertion failures", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140462)|EXCEPTION_THROWN|[834]|System.AssertException: Assertion Failed
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Assertion failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "assertion_failure",
   ]);
 });
 

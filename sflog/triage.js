@@ -6,7 +6,7 @@ const DIAGNOSTICS = [
     priority: 0,
     test(line, eventType) {
       return (
-        eventType === "FATAL_ERROR" &&
+        (eventType === "FATAL_ERROR" || eventType === "EXCEPTION_THROWN") &&
         /AssertException|Assertion Failed/i.test(line)
       );
     },
@@ -51,9 +51,15 @@ const DIAGNOSTICS = [
     severity: "warning",
     priority: 4,
     test(line, eventType) {
+      const hasExplicitErrorWrapper = /"Error\s*\[/i.test(line);
+      const hasErrorStatusCode = /\bstatusCode=(?:[A-Z][A-Z0-9_]+)\b/.test(line);
+      const hasErrorMessage = /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(
+        line
+      );
+
       return (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        /"Error\s*\[|\bstatusCode=|\bmessage=/i.test(line)
+        (hasExplicitErrorWrapper || hasErrorStatusCode || hasErrorMessage)
       );
     },
   },
@@ -90,6 +96,32 @@ function buildReason(diagnostic, rawLine, eventType) {
   };
 }
 
+function collectLineDiagnostics(line, eventType) {
+  const matches = DIAGNOSTICS.filter((diagnostic) =>
+    diagnostic.test(line, eventType)
+  );
+  const matchedCodes = new Set(matches.map((diagnostic) => diagnostic.code));
+  const hasSpecificError =
+    matchedCodes.has("assertion_failure") ||
+    matchedCodes.has("validation_failure") ||
+    matchedCodes.has("dml_failure");
+
+  return matches.filter((diagnostic) => {
+    if (diagnostic.code === "fatal_exception" && hasSpecificError) {
+      return false;
+    }
+
+    if (
+      diagnostic.code === "suspicious_error_payload" &&
+      matches.some((candidate) => candidate.severity === "error")
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 function summarizeLog(logText) {
   const reasonsByCode = new Map();
 
@@ -101,8 +133,8 @@ function summarizeLog(logText) {
 
     const eventType = extractEventType(line);
 
-    for (const diagnostic of DIAGNOSTICS) {
-      if (!diagnostic.test(line, eventType) || reasonsByCode.has(diagnostic.code)) {
+    for (const diagnostic of collectLineDiagnostics(line, eventType)) {
+      if (reasonsByCode.has(diagnostic.code)) {
         continue;
       }
 
@@ -110,7 +142,6 @@ function summarizeLog(logText) {
         diagnostic.code,
         buildReason(diagnostic, line, eventType)
       );
-      break;
     }
   }
 
@@ -126,7 +157,7 @@ function summarizeLog(logText) {
   });
 
   return {
-    hasErrors: reasons.length > 0,
+    hasErrors: reasons.some((reason) => reason.severity === "error"),
     primaryReason: reasons[0] ? reasons[0].summary : undefined,
     reasons,
   };
