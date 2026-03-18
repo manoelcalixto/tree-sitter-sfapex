@@ -167,9 +167,29 @@ test("does not classify user debug literals as validation failures", () => {
   assert.deepEqual(summary.reasons, []);
 });
 
+test("does not classify benign variable assignment labels as validation failures", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"FIELD_CUSTOM_VALIDATION_EXCEPTION used as a label"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
 test("does not classify user debug literals as dml failures", () => {
   const summary = summarizeLog(`
 17:11:53.0 (1600140462)|USER_DEBUG|[5]|DEBUG|Insert failed is just a string literal with REQUIRED_FIELD_MISSING
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("does not classify benign variable assignment labels as dml failures", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"Insert failed is just a label with REQUIRED_FIELD_MISSING"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, false);

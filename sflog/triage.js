@@ -25,8 +25,20 @@ const DIAGNOSTICS = [
         return false;
       }
 
+      const candidate =
+        eventType === "VARIABLE_ASSIGNMENT"
+          ? extractVariableAssignmentValue(line)
+          : line;
+
+      if (
+        eventType === "VARIABLE_ASSIGNMENT" &&
+        !looksLikeSerializedErrorPayload(candidate)
+      ) {
+        return false;
+      }
+
       return /FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION/i.test(
-        line
+        candidate
       );
     },
   },
@@ -44,8 +56,20 @@ const DIAGNOSTICS = [
         return false;
       }
 
+      const candidate =
+        eventType === "VARIABLE_ASSIGNMENT"
+          ? extractVariableAssignmentValue(line)
+          : line;
+
+      if (
+        eventType === "VARIABLE_ASSIGNMENT" &&
+        !looksLikeSerializedErrorPayload(candidate)
+      ) {
+        return false;
+      }
+
       return /DmlException|Insert failed|Update failed|Upsert failed|Delete failed|Merge failed|REQUIRED_FIELD_MISSING/i.test(
-        line
+        candidate
       );
     },
   },
@@ -71,15 +95,9 @@ const DIAGNOSTICS = [
     severity: "warning",
     priority: 4,
     test(line, eventType) {
-      const hasExplicitErrorWrapper = /"Error\s*\[/i.test(line);
-      const hasErrorStatusCode = /\bstatusCode=(?:[A-Z][A-Z0-9_]+)\b/.test(line);
-      const hasErrorMessage = /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(
-        line
-      );
-
       return (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        (hasExplicitErrorWrapper || hasErrorStatusCode || hasErrorMessage)
+        looksLikeSerializedErrorPayload(extractVariableAssignmentValue(line))
       );
     },
   },
@@ -93,6 +111,22 @@ const DIAGNOSTICS = [
     },
   },
 ];
+
+function extractVariableAssignmentValue(line) {
+  const match = line.match(
+    /^[^|]*\|VARIABLE_ASSIGNMENT\|[^|]*\|[^|]*\|([\s\S]*?)(?:\|0x[0-9a-fA-F]+)?$/
+  );
+
+  return match ? match[1] : line;
+}
+
+function looksLikeSerializedErrorPayload(text) {
+  return (
+    /"Error\s*\[/i.test(text) ||
+    /\bstatusCode=(?:[A-Z][A-Z0-9_]+)\b/.test(text) ||
+    /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(text)
+  );
+}
 
 function extractEventType(line) {
   const match = line.match(/^[^|]*\|([^|]+)\|/);
