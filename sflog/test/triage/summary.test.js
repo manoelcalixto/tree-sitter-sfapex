@@ -101,6 +101,31 @@ test("classifies exception payloads stored in variables as fatal diagnostics", (
   ]);
 });
 
+test("classifies assert exceptions stored in variables as assertion failures", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|err|"System.AssertException: Assertion Failed"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Assertion failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "assertion_failure",
+  ]);
+});
+
+test("classifies dml exception payloads stored in variables with specific reasons", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|err|"System.DmlException: Insert failed. First exception on row 0; first error: FIELD_CUSTOM_VALIDATION_EXCEPTION, Could not save..., fields=[Name]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Validation failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "validation_failure",
+    "dml_failure",
+  ]);
+});
+
 test("does not classify exception labels stored in variables as fatal diagnostics", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|label|"System.NullPointerException used as a label"|0x3722c840
@@ -109,6 +134,18 @@ test("does not classify exception labels stored in variables as fatal diagnostic
   assert.equal(summary.hasErrors, false);
   assert.equal(summary.primaryReason, undefined);
   assert.deepEqual(summary.reasons, []);
+});
+
+test("treats no-detail fatal log entries as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:53.0|FATAL_ERROR
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
 });
 
 test("does not classify successful status payloads as errors", () => {

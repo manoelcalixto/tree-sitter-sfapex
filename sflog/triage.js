@@ -5,6 +5,12 @@ const DIAGNOSTICS = [
     severity: "error",
     priority: 0,
     test(line, eventType) {
+      if (eventType === "VARIABLE_ASSIGNMENT") {
+        const candidate = extractVariableAssignmentValue(line);
+        return looksLikeExceptionPayload(candidate) &&
+          /AssertException|Assertion Failed/i.test(candidate);
+      }
+
       return (
         (eventType === "FATAL_ERROR" || eventType === "EXCEPTION_THROWN") &&
         /AssertException|Assertion Failed/i.test(line)
@@ -32,7 +38,7 @@ const DIAGNOSTICS = [
 
       if (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        !looksLikeSerializedErrorPayload(candidate)
+        !looksLikeErrorBearingVariableValue(candidate)
       ) {
         return false;
       }
@@ -63,7 +69,7 @@ const DIAGNOSTICS = [
 
       if (
         eventType === "VARIABLE_ASSIGNMENT" &&
-        !looksLikeSerializedErrorPayload(candidate)
+        !looksLikeErrorBearingVariableValue(candidate)
       ) {
         return false;
       }
@@ -136,13 +142,17 @@ function looksLikeExceptionPayload(text) {
   return /(?:^|["\s])(?:[A-Za-z0-9_$.]+Exception):\s+\S/.test(text);
 }
 
+function looksLikeErrorBearingVariableValue(text) {
+  return looksLikeSerializedErrorPayload(text) || looksLikeExceptionPayload(text);
+}
+
 function extractEventType(line) {
-  const match = line.match(/^[^|]*\|([^|]+)\|/);
+  const match = line.match(/^[^|]*\|([^|]+)(?:\||$)/);
   return match ? match[1] : undefined;
 }
 
 function isLogEntryStart(line) {
-  return /^\d{2}:\d{2}:\d{2}\.\d+(?:\s+\([^)]+\))?\|[^|]+\|/.test(line);
+  return /^\d{2}:\d{2}:\d{2}\.\d+(?:\s+\([^)]+\))?\|[^|]+(?:\||$)/.test(line);
 }
 
 function splitLogEntries(logText) {
