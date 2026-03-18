@@ -29,6 +29,30 @@ test("reports a fatal exception for uncategorized fatal errors", () => {
   ]);
 });
 
+test("does not classify validation literals inside unrelated exception text", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140461)|EXCEPTION_THROWN|[834]|System.IllegalArgumentException: FIELD_CUSTOM_VALIDATION_EXCEPTION used as a literal
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
+test("does not classify dml literals inside unrelated fatal exception text", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140461)|FATAL_ERROR|System.IllegalArgumentException: REQUIRED_FIELD_MISSING used as a label
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("reports fatal exceptions when timestamps omit duration", () => {
   const summary = summarizeLog(`
 17:11:53.0|EXCEPTION_THROWN|[834]|System.IllegalArgumentException: DeveloperName is required

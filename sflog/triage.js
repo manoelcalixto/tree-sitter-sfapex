@@ -1,5 +1,7 @@
 const DML_STATUS_CODE_PATTERN =
   /REQUIRED_FIELD_MISSING|FIELD_INTEGRITY_EXCEPTION|DUPLICATE_VALUE|INVALID_FIELD_FOR_INSERT_UPDATE|STRING_TOO_LONG|INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST|INVALID_CROSS_REFERENCE_KEY|CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY|DELETE_FAILED|ENTITY_IS_DELETED/;
+const VALIDATION_STATUS_CODE_PATTERN =
+  /FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION/;
 
 const DIAGNOSTICS = [
   {
@@ -50,6 +52,13 @@ const DIAGNOSTICS = [
         return false;
       }
 
+      if (
+        (eventType === "EXCEPTION_THROWN" || eventType === "FATAL_ERROR") &&
+        !looksLikeStructuredThrownValidationFailure(candidate)
+      ) {
+        return false;
+      }
+
       return /FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION/i.test(
         candidate
       );
@@ -79,6 +88,13 @@ const DIAGNOSTICS = [
         !looksLikeErrorBearingVariableValue(candidate) &&
         !looksLikePlainDmlMessage(candidate) &&
         !looksLikePlainDmlStatusMessage(candidate)
+      ) {
+        return false;
+      }
+
+      if (
+        (eventType === "EXCEPTION_THROWN" || eventType === "FATAL_ERROR") &&
+        !looksLikeStructuredThrownDmlFailure(candidate)
       ) {
         return false;
       }
@@ -185,6 +201,24 @@ function looksLikePlainAssertionMessage(text) {
 function looksLikePlainDmlStatusMessage(text) {
   return new RegExp(`^(?:${DML_STATUS_CODE_PATTERN.source})(?=[,:]|$)`).test(
     normalizeVariableValue(text)
+  );
+}
+
+function looksLikeStructuredThrownValidationFailure(text) {
+  return (
+    (/DmlException/.test(text) && VALIDATION_STATUS_CODE_PATTERN.test(text)) ||
+    new RegExp(
+      `(?:statusCode=|first error:\\s*)(?:${VALIDATION_STATUS_CODE_PATTERN.source})`
+    ).test(text)
+  );
+}
+
+function looksLikeStructuredThrownDmlFailure(text) {
+  return (
+    /DmlException/.test(text) ||
+    new RegExp(
+      `(?:statusCode=|first error:\\s*)(?:${DML_STATUS_CODE_PATTERN.source})`
+    ).test(text)
   );
 }
 
