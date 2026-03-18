@@ -2,6 +2,7 @@
 Payloads And Rollbacks
 ==================
 
+37.0 APEX_CODE,FINEST;APEX_PROFILING,INFO;CALLOUT,INFO;DB,INFO;SYSTEM,DEBUG;VALIDATION,INFO;VISUALFORCE,INFO;WORKFLOW,INFO
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|"Error [statusCode=FIELD_CUSTOM_VALIDATION_EXCEPTION, code=null, message=Could not save..., fields=[Name]]"|0x3722c840
 17:11:52.525 (530873859)|ROLLBACK|[111]|Savepoint restored
 17:11:52.525 (530900000)|DML_END|[111]
@@ -9,6 +10,33 @@ Payloads And Rollbacks
 ---
 
 (source_file
+  (log_header
+    (version)
+    (log_level_settings
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))
+      (log_level_setting
+        (component)
+        (log_level))))
   (log_entry
     (timestamp
       (time)
