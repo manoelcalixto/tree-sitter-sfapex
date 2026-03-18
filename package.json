@@ -64,6 +64,7 @@
     "*/src/grammar.json",
     "*/src/node-types.json",
     "*/src/parser.c",
+    "sflog/triage.js",
     "*/src/tree_sitter/parser.h",
     "bindings/node/*.js",
     "bindings/node/*.ts",
