@@ -3,7 +3,7 @@ module.exports = grammar({
   name: "sflog",
   rules: {
     source_file: ($) =>
-      seq($.log_header, optional($.anonymous_block), repeat($.log_entry)),
+      seq(optional($.log_header), optional($.anonymous_block), repeat($.log_entry)),
 
     log_header: ($) => seq($.version, $.log_level_settings, "\n"),
 
