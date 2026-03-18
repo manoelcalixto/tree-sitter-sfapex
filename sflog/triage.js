@@ -81,6 +81,40 @@ function extractEventType(line) {
   return match ? match[1] : undefined;
 }
 
+function isLogEntryStart(line) {
+  return /^\d{2}:\d{2}:\d{2}\.\d+\s+\([^)]+\)\|[^|]+\|/.test(line);
+}
+
+function splitLogEntries(logText) {
+  const entries = [];
+  let currentEntry;
+
+  for (const rawLine of String(logText ?? "").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    if (isLogEntryStart(line)) {
+      if (currentEntry) {
+        entries.push(currentEntry);
+      }
+      currentEntry = line;
+      continue;
+    }
+
+    if (currentEntry) {
+      currentEntry += `\n${line}`;
+    }
+  }
+
+  if (currentEntry) {
+    entries.push(currentEntry);
+  }
+
+  return entries;
+}
+
 function extractSourceLine(line) {
   const match = line.match(/\|(\[(\d+)\]|\[[A-Z_]+\])\|/);
   return match && match[2] ? Number(match[2]) : undefined;
@@ -125,12 +159,7 @@ function collectLineDiagnostics(line, eventType) {
 function summarizeLog(logText) {
   const reasonsByCode = new Map();
 
-  for (const rawLine of String(logText ?? "").split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) {
-      continue;
-    }
-
+  for (const line of splitLogEntries(logText)) {
     const eventType = extractEventType(line);
 
     for (const diagnostic of collectLineDiagnostics(line, eventType)) {
@@ -157,7 +186,7 @@ function summarizeLog(logText) {
   });
 
   return {
-    hasErrors: reasons.some((reason) => reason.severity === "error"),
+    hasErrors: reasons.length > 0,
     primaryReason: reasons[0] ? reasons[0].summary : undefined,
     reasons,
   };

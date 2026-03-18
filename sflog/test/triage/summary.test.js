@@ -58,7 +58,7 @@ test("reports suspicious serialized error payloads", () => {
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|"Error [statusCode=UNKNOWN_EXCEPTION, code=null, message=Queueable job failed unexpectedly, fields=[]]"|0x3722c840
 `);
 
-  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.hasErrors, true);
   assert.equal(summary.primaryReason, "Suspicious error payload");
   assert.deepEqual(summary.reasons.map((reason) => reason.code), [
     "suspicious_error_payload",
@@ -97,6 +97,42 @@ test("classifies AssertException from EXCEPTION_THROWN as assertion failures", (
   assert.equal(summary.primaryReason, "Assertion failure");
   assert.deepEqual(summary.reasons.map((reason) => reason.code), [
     "assertion_failure",
+  ]);
+});
+
+test("treats rollback-only logs as triage hits", () => {
+  const summary = summarizeLog(`
+17:11:52.525 (530873859)|ROLLBACK|[111]|Savepoint restored
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Rollback detected");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "rollback_detected",
+  ]);
+});
+
+test("ignores execute anonymous source lines outside structured log events", () => {
+  const summary = summarizeLog(`
+Execute Anonymous:
+System.debug('FIELD_CUSTOM_VALIDATION_EXCEPTION');
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("preserves event context for multiline variable assignments", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|error|payloadStart
+Error [statusCode=UNKNOWN_EXCEPTION, code=null, message=Queueable job failed unexpectedly, fields=[]]
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Suspicious error payload");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "suspicious_error_payload",
   ]);
 });
 
