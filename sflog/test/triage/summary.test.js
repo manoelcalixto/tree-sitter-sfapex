@@ -41,6 +41,18 @@ test("reports fatal exceptions when timestamps omit duration", () => {
   ]);
 });
 
+test("treats bare fatal error events as fatal diagnostics", () => {
+  const summary = summarizeLog(`
+17:11:53.0|FATAL_ERROR|Internal Salesforce.com Error
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("prefers assertion failures over a generic fatal exception", () => {
   const summary = summarizeLog(`
 17:11:53.0 (1600140462)|FATAL_ERROR|System.AssertException: Assertion Failed
@@ -122,6 +134,16 @@ test("treats rollback-only logs as triage hits", () => {
   assert.deepEqual(summary.reasons.map((reason) => reason.code), [
     "rollback_detected",
   ]);
+});
+
+test("does not classify rollback literals in user debug lines as rollbacks", () => {
+  const summary = summarizeLog(`
+17:11:52.525 (530873859)|USER_DEBUG|[111]|DEBUG|Database.rollback(sp) mentions ROLLBACK as a string literal
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
 });
 
 test("ignores execute anonymous source lines outside structured log events", () => {

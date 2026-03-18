@@ -55,8 +55,12 @@ const DIAGNOSTICS = [
     severity: "error",
     priority: 3,
     test(line, eventType) {
+      if (eventType === "FATAL_ERROR") {
+        return true;
+      }
+
       return (
-        (eventType === "EXCEPTION_THROWN" || eventType === "FATAL_ERROR") &&
+        eventType === "EXCEPTION_THROWN" &&
         /[A-Za-z0-9_.]+Exception\b|Assertion Failed/i.test(line)
       );
     },
@@ -84,10 +88,8 @@ const DIAGNOSTICS = [
     summary: "Rollback detected",
     severity: "warning",
     priority: 5,
-    test(line, eventType) {
-      return (
-        eventType === "ROLLBACK" || /Savepoint restored|\bROLLBACK\b/i.test(line)
-      );
+    test(_line, eventType) {
+      return eventType === "ROLLBACK";
     },
   },
 ];
