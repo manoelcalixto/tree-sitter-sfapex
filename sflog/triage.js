@@ -1,3 +1,6 @@
+const DML_STATUS_CODE_PATTERN =
+  /REQUIRED_FIELD_MISSING|FIELD_INTEGRITY_EXCEPTION|DUPLICATE_VALUE|INVALID_FIELD_FOR_INSERT_UPDATE|STRING_TOO_LONG|INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST|INVALID_CROSS_REFERENCE_KEY|CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY|DELETE_FAILED|ENTITY_IS_DELETED/;
+
 const DIAGNOSTICS = [
   {
     code: "assertion_failure",
@@ -80,8 +83,10 @@ const DIAGNOSTICS = [
         return false;
       }
 
-      return /DmlException|Insert failed|Update failed|Upsert failed|Delete failed|Merge failed|REQUIRED_FIELD_MISSING/i.test(
-        candidate
+      return (
+        /DmlException|Insert failed|Update failed|Upsert failed|Delete failed|Merge failed/i.test(
+          candidate
+        ) || DML_STATUS_CODE_PATTERN.test(candidate)
       );
     },
   },
@@ -127,7 +132,7 @@ const DIAGNOSTICS = [
 
 function extractVariableAssignmentValue(line) {
   const match = line.match(
-    /^[^|]*\|VARIABLE_ASSIGNMENT\|[^|]*\|[^|]*\|([\s\S]*?)(?:\|0x[0-9a-fA-F]+)?$/
+    /^[^|]*\|VARIABLE_ASSIGNMENT\|(?:\[[^\]]+\]\|)?[^|]*\|([\s\S]*?)(?:\|0x[0-9a-fA-F]+)?$/
   );
 
   return match ? match[1] : line;
@@ -178,7 +183,7 @@ function looksLikePlainAssertionMessage(text) {
 }
 
 function looksLikePlainDmlStatusMessage(text) {
-  return /^(?:REQUIRED_FIELD_MISSING|FIELD_INTEGRITY_EXCEPTION|DUPLICATE_VALUE|INVALID_FIELD_FOR_INSERT_UPDATE|STRING_TOO_LONG|INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST|INVALID_CROSS_REFERENCE_KEY|CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY|DELETE_FAILED|ENTITY_IS_DELETED)(?=[,:]|$)/.test(
+  return new RegExp(`^(?:${DML_STATUS_CODE_PATTERN.source})(?=[,:]|$)`).test(
     normalizeVariableValue(text)
   );
 }

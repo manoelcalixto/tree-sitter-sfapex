@@ -101,6 +101,18 @@ test("classifies exception payloads stored in variables as fatal diagnostics", (
   ]);
 });
 
+test("classifies locationless variable assignment exception payloads", () => {
+  const summary = summarizeLog(`
+17:11:52.319|VARIABLE_ASSIGNMENT|err|"System.NullPointerException: Attempt to de-reference a null object"|0x1
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("classifies bare exception type names stored in variables as fatal diagnostics", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|typeName|"System.NullPointerException"|0x3722c840
@@ -177,6 +189,18 @@ test("classifies plain dml messages stored in variables", () => {
 test("classifies dml status-code payloads stored in variables", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|saveError|"REQUIRED_FIELD_MISSING, Required fields are missing: [Name]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "DML failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "dml_failure",
+  ]);
+});
+
+test("classifies additional dml status-code payloads stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|saveError|"DUPLICATE_VALUE, duplicate value found: Name duplicates value on record with id: 001xx"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, true);
