@@ -10,19 +10,20 @@ const DIAGNOSTICS = [
     severity: "error",
     priority: 0,
     test(line, eventType) {
-      if (eventType === "VARIABLE_ASSIGNMENT") {
-        const candidate = extractVariableAssignmentValue(line);
-        return (
-          (looksLikeExceptionPayload(candidate) ||
-            looksLikePlainAssertionMessage(candidate)) &&
-          /AssertException|Assertion Failed/i.test(candidate)
-        );
+      if (
+        eventType !== "VARIABLE_ASSIGNMENT" &&
+        eventType !== "FATAL_ERROR" &&
+        eventType !== "EXCEPTION_THROWN"
+      ) {
+        return false;
       }
 
-      return (
-        (eventType === "FATAL_ERROR" || eventType === "EXCEPTION_THROWN") &&
-        /AssertException|Assertion Failed/i.test(line)
-      );
+      const candidate =
+        eventType === "VARIABLE_ASSIGNMENT"
+          ? extractVariableAssignmentValue(line)
+          : extractEventDetailValue(line, eventType);
+
+      return looksLikeStructuredAssertionFailure(candidate);
     },
   },
   {
@@ -155,10 +156,13 @@ function extractVariableAssignmentValue(line) {
 }
 
 function looksLikeSerializedErrorPayload(text) {
+  const normalized = normalizeVariableValue(text);
+  const serializedStatusCode = extractSerializedStatusCode(normalized);
+
   return (
-    /"Error\s*\[/i.test(text) ||
-    /\bstatusCode=(?:[A-Z][A-Z0-9_]+)\b/.test(text) ||
-    /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(text)
+    /^Error\s*\[/i.test(normalized) ||
+    looksLikeSerializedErrorStatusCode(serializedStatusCode) ||
+    /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(normalized)
   );
 }
 
@@ -198,10 +202,33 @@ function looksLikePlainAssertionMessage(text) {
   return /\bAssertion Failed\b(?=[:.]|$)/i.test(normalizeVariableValue(text));
 }
 
+function looksLikeStructuredAssertionFailure(text) {
+  const normalized = normalizeVariableValue(text);
+
+  return (
+    /^(?:[A-Za-z0-9_$.]+\.)?AssertException(?::|\b)/.test(normalized) ||
+    looksLikePlainAssertionMessage(normalized)
+  );
+}
+
 function looksLikePlainDmlStatusMessage(text) {
   return new RegExp(`^(?:${DML_STATUS_CODE_PATTERN.source})(?=[,:]|$)`).test(
     normalizeVariableValue(text)
   );
+}
+
+function extractSerializedStatusCode(text) {
+  const match = String(text ?? "").match(/\bstatusCode=([A-Z][A-Z0-9_]+)\b/);
+  return match ? match[1] : undefined;
+}
+
+function looksLikeSerializedErrorStatusCode(statusCode) {
+  return Boolean(statusCode) &&
+    (DML_STATUS_CODE_PATTERN.test(statusCode) ||
+      VALIDATION_STATUS_CODE_PATTERN.test(statusCode) ||
+      /(EXCEPTION|ERROR|FAILED|INVALID|REQUIRED|DUPLICATE|DELETE|CANNOT|ENTITY_IS_DELETED|STRING_TOO_LONG)/.test(
+        statusCode
+      ));
 }
 
 function looksLikeStructuredThrownValidationFailure(text) {
@@ -230,9 +257,22 @@ function normalizeVariableValue(text) {
   return normalized;
 }
 
+function extractEventDetailValue(line, eventType) {
+  const eventPattern = eventType ? escapeRegExp(eventType) : "[^|]+";
+  const match = String(line ?? "").match(
+    new RegExp(`^[^|]*\\|${eventPattern}\\|(?:\\[[^\\]]+\\]\\|)?([\\s\\S]*)$`)
+  );
+
+  return match ? match[1] : "";
+}
+
 function extractEventType(line) {
   const match = line.match(/^[^|]*\|([^|]+)(?:\||$)/);
   return match ? match[1] : undefined;
+}
+
+function escapeRegExp(text) {
+  return String(text ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function isLogEntryStart(line) {

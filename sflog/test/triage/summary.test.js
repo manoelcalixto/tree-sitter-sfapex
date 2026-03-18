@@ -89,6 +89,18 @@ test("prefers assertion failures over a generic fatal exception", () => {
   ]);
 });
 
+test("does not classify assertion literals inside unrelated exception text", () => {
+  const summary = summarizeLog(`
+17:11:53.0 (1600140462)|EXCEPTION_THROWN|[834]|System.IllegalArgumentException: Assertion Failed used as a literal
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Fatal exception");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "fatal_exception",
+  ]);
+});
+
 test("reports dml failures from exception payloads", () => {
   const summary = summarizeLog(`
 17:11:52.320 (372616767)|EXCEPTION_THROWN|[131]|System.DmlException: Insert failed. First exception on row 0; first error: REQUIRED_FIELD_MISSING, Required fields are missing: [Name]: [Name]
@@ -295,6 +307,16 @@ test("treats no-detail exception-thrown entries as fatal diagnostics", () => {
 test("does not classify successful status payloads as errors", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"HttpResponse [statusCode=200, message=OK]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("does not classify serialized success payloads as suspicious errors", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"ApiResponse [statusCode=SUCCESS, message=Done]"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, false);
