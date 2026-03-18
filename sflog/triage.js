@@ -2,6 +2,10 @@ const DML_STATUS_CODE_PATTERN =
   /REQUIRED_FIELD_MISSING|FIELD_INTEGRITY_EXCEPTION|DUPLICATE_VALUE|INVALID_FIELD_FOR_INSERT_UPDATE|STRING_TOO_LONG|INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST|INVALID_CROSS_REFERENCE_KEY|CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY|DELETE_FAILED|ENTITY_IS_DELETED/;
 const VALIDATION_STATUS_CODE_PATTERN =
   /FIELD_CUSTOM_VALIDATION_EXCEPTION|VALIDATION_EXCEPTION/;
+const BENIGN_SERIALIZED_STATUS_CODE_PATTERN = /^(?:SUCCESS|OK|DONE|NO_ERROR|NONE)$/;
+const VARIABLE_ASSIGNMENT_EVENT = "VARIABLE_ASSIGNMENT";
+const FATAL_ERROR_EVENT = "FATAL_ERROR";
+const EXCEPTION_THROWN_EVENT = "EXCEPTION_THROWN";
 
 const DIAGNOSTICS = [
   {
@@ -9,21 +13,14 @@ const DIAGNOSTICS = [
     summary: "Assertion failure",
     severity: "error",
     priority: 0,
-    test(line, eventType) {
-      if (
-        eventType !== "VARIABLE_ASSIGNMENT" &&
-        eventType !== "FATAL_ERROR" &&
-        eventType !== "EXCEPTION_THROWN"
-      ) {
+    test(context) {
+      if (!supportsAssertionDiagnostic(context.eventType)) {
         return false;
       }
 
-      const candidate =
-        eventType === "VARIABLE_ASSIGNMENT"
-          ? extractVariableAssignmentValue(line)
-          : extractEventDetailValue(line, eventType);
-
-      return looksLikeStructuredAssertionFailure(candidate);
+      return looksLikeStructuredAssertionFailure(
+        getDiagnosticCandidate(context)
+      );
     },
   },
   {
@@ -31,22 +28,15 @@ const DIAGNOSTICS = [
     summary: "Validation failure",
     severity: "error",
     priority: 1,
-    test(line, eventType) {
-      if (
-        eventType !== "VARIABLE_ASSIGNMENT" &&
-        eventType !== "EXCEPTION_THROWN" &&
-        eventType !== "FATAL_ERROR"
-      ) {
+    test(context) {
+      if (!supportsFailureDiagnostic(context.eventType)) {
         return false;
       }
 
-      const candidate =
-        eventType === "VARIABLE_ASSIGNMENT"
-          ? extractVariableAssignmentValue(line)
-          : line;
+      const candidate = getDiagnosticCandidate(context);
 
       if (
-        eventType === "VARIABLE_ASSIGNMENT" &&
+        isVariableAssignmentEvent(context.eventType) &&
         !looksLikeErrorBearingVariableValue(candidate) &&
         !looksLikePlainValidationMessage(candidate)
       ) {
@@ -54,7 +44,7 @@ const DIAGNOSTICS = [
       }
 
       if (
-        (eventType === "EXCEPTION_THROWN" || eventType === "FATAL_ERROR") &&
+        isThrownExceptionEvent(context.eventType) &&
         !looksLikeStructuredThrownValidationFailure(candidate)
       ) {
         return false;
@@ -70,22 +60,15 @@ const DIAGNOSTICS = [
     summary: "DML failure",
     severity: "error",
     priority: 2,
-    test(line, eventType) {
-      if (
-        eventType !== "VARIABLE_ASSIGNMENT" &&
-        eventType !== "EXCEPTION_THROWN" &&
-        eventType !== "FATAL_ERROR"
-      ) {
+    test(context) {
+      if (!supportsFailureDiagnostic(context.eventType)) {
         return false;
       }
 
-      const candidate =
-        eventType === "VARIABLE_ASSIGNMENT"
-          ? extractVariableAssignmentValue(line)
-          : line;
+      const candidate = getDiagnosticCandidate(context);
 
       if (
-        eventType === "VARIABLE_ASSIGNMENT" &&
+        isVariableAssignmentEvent(context.eventType) &&
         !looksLikeErrorBearingVariableValue(candidate) &&
         !looksLikePlainDmlMessage(candidate) &&
         !looksLikePlainDmlStatusMessage(candidate)
@@ -94,7 +77,7 @@ const DIAGNOSTICS = [
       }
 
       if (
-        (eventType === "EXCEPTION_THROWN" || eventType === "FATAL_ERROR") &&
+        isThrownExceptionEvent(context.eventType) &&
         !looksLikeStructuredThrownDmlFailure(candidate)
       ) {
         return false;
@@ -112,16 +95,16 @@ const DIAGNOSTICS = [
     summary: "Fatal exception",
     severity: "error",
     priority: 3,
-    test(line, eventType) {
-      if (eventType === "FATAL_ERROR") {
+    test(context) {
+      if (context.eventType === FATAL_ERROR_EVENT) {
         return true;
       }
 
-      if (eventType === "VARIABLE_ASSIGNMENT") {
-        return looksLikeExceptionPayload(extractVariableAssignmentValue(line));
+      if (isVariableAssignmentEvent(context.eventType)) {
+        return looksLikeExceptionPayload(context.variableValue);
       }
 
-      return eventType === "EXCEPTION_THROWN";
+      return context.eventType === EXCEPTION_THROWN_EVENT;
     },
   },
   {
@@ -129,10 +112,10 @@ const DIAGNOSTICS = [
     summary: "Suspicious error payload",
     severity: "warning",
     priority: 4,
-    test(line, eventType) {
+    test(context) {
       return (
-        eventType === "VARIABLE_ASSIGNMENT" &&
-        looksLikeSerializedErrorPayload(extractVariableAssignmentValue(line))
+        isVariableAssignmentEvent(context.eventType) &&
+        looksLikeSerializedErrorPayload(context.variableValue)
       );
     },
   },
@@ -141,8 +124,8 @@ const DIAGNOSTICS = [
     summary: "Rollback detected",
     severity: "warning",
     priority: 5,
-    test(_line, eventType) {
-      return eventType === "ROLLBACK";
+    test(context) {
+      return context.eventType === "ROLLBACK";
     },
   },
 ];
@@ -155,14 +138,52 @@ function extractVariableAssignmentValue(line) {
   return match ? match[1] : line;
 }
 
+function buildDiagnosticContext(line) {
+  const eventType = extractEventType(line);
+  const eventDetail = extractEventDetailValue(line, eventType);
+  const variableValue = isVariableAssignmentEvent(eventType)
+    ? extractVariableAssignmentValue(line)
+    : undefined;
+
+  return {
+    line,
+    eventType,
+    eventDetail,
+    variableValue,
+  };
+}
+
+function getDiagnosticCandidate(context) {
+  return isVariableAssignmentEvent(context.eventType)
+    ? context.variableValue
+    : context.eventDetail;
+}
+
+function isVariableAssignmentEvent(eventType) {
+  return eventType === VARIABLE_ASSIGNMENT_EVENT;
+}
+
+function isThrownExceptionEvent(eventType) {
+  return eventType === EXCEPTION_THROWN_EVENT || eventType === FATAL_ERROR_EVENT;
+}
+
+function supportsFailureDiagnostic(eventType) {
+  return isVariableAssignmentEvent(eventType) || isThrownExceptionEvent(eventType);
+}
+
+function supportsAssertionDiagnostic(eventType) {
+  return supportsFailureDiagnostic(eventType);
+}
+
 function looksLikeSerializedErrorPayload(text) {
   const normalized = normalizeVariableValue(text);
   const serializedStatusCode = extractSerializedStatusCode(normalized);
+  const serializedMessage = extractSerializedMessage(normalized);
 
   return (
     /^Error\s*\[/i.test(normalized) ||
     looksLikeSerializedErrorStatusCode(serializedStatusCode) ||
-    /\bmessage=[^|"]*(?:exception|failed|error)\b/i.test(normalized)
+    looksLikeSerializedErrorMessage(serializedMessage)
   );
 }
 
@@ -199,7 +220,7 @@ function looksLikePlainDmlMessage(text) {
 }
 
 function looksLikePlainAssertionMessage(text) {
-  return /\bAssertion Failed\b(?=[:.]|$)/i.test(normalizeVariableValue(text));
+  return /^Assertion Failed(?=[:.]|$)/i.test(normalizeVariableValue(text));
 }
 
 function looksLikeStructuredAssertionFailure(text) {
@@ -222,13 +243,39 @@ function extractSerializedStatusCode(text) {
   return match ? match[1] : undefined;
 }
 
+function extractSerializedMessage(text) {
+  const match = String(text ?? "").match(
+    /\bmessage=([\s\S]*?)(?:,\s*[A-Za-z_]+=|\])(?:\s*$)?/i
+  );
+  return match ? match[1].trim() : undefined;
+}
+
 function looksLikeSerializedErrorStatusCode(statusCode) {
   return Boolean(statusCode) &&
+    !BENIGN_SERIALIZED_STATUS_CODE_PATTERN.test(statusCode) &&
     (DML_STATUS_CODE_PATTERN.test(statusCode) ||
       VALIDATION_STATUS_CODE_PATTERN.test(statusCode) ||
       /(EXCEPTION|ERROR|FAILED|INVALID|REQUIRED|DUPLICATE|DELETE|CANNOT|ENTITY_IS_DELETED|STRING_TOO_LONG)/.test(
         statusCode
       ));
+}
+
+function looksLikeSerializedErrorMessage(message) {
+  const normalized = String(message ?? "").trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (
+    /\b(?:no|without)\s+(?:error|errors|exception|exceptions|failure|failures)\b/i.test(
+      normalized
+    )
+  ) {
+    return false;
+  }
+
+  return /\b(?:exception|failed|error)\b/i.test(normalized);
 }
 
 function looksLikeStructuredThrownValidationFailure(text) {
@@ -260,10 +307,12 @@ function normalizeVariableValue(text) {
 function extractEventDetailValue(line, eventType) {
   const eventPattern = eventType ? escapeRegExp(eventType) : "[^|]+";
   const match = String(line ?? "").match(
-    new RegExp(`^[^|]*\\|${eventPattern}\\|(?:\\[[^\\]]+\\]\\|)?([\\s\\S]*)$`)
+    new RegExp(
+      `^[^|]*\\|${eventPattern}(?:\\|(\\[[^\\]]+\\]))?(?:\\|([\\s\\S]*))?$`
+    )
   );
 
-  return match ? match[1] : "";
+  return match ? match[2] ?? "" : "";
 }
 
 function extractEventType(line) {
@@ -324,9 +373,9 @@ function buildReason(diagnostic, rawLine, eventType) {
   };
 }
 
-function collectLineDiagnostics(line, eventType) {
+function collectLineDiagnostics(context) {
   const matches = DIAGNOSTICS.filter((diagnostic) =>
-    diagnostic.test(line, eventType)
+    diagnostic.test(context)
   );
   const matchedCodes = new Set(matches.map((diagnostic) => diagnostic.code));
   const hasSpecificError =
@@ -354,16 +403,16 @@ function summarizeLog(logText) {
   const reasonsByCode = new Map();
 
   for (const line of splitLogEntries(logText)) {
-    const eventType = extractEventType(line);
+    const context = buildDiagnosticContext(line);
 
-    for (const diagnostic of collectLineDiagnostics(line, eventType)) {
+    for (const diagnostic of collectLineDiagnostics(context)) {
       if (reasonsByCode.has(diagnostic.code)) {
         continue;
       }
 
       reasonsByCode.set(
         diagnostic.code,
-        buildReason(diagnostic, line, eventType)
+        buildReason(diagnostic, line, context.eventType)
       );
     }
   }

@@ -270,6 +270,16 @@ test("classifies bare assertion messages stored in variables", () => {
   ]);
 });
 
+test("does not classify assertion labels stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"This label says Assertion Failed"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
 test("does not classify exception labels stored in variables as fatal diagnostics", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|label|"System.NullPointerException used as a label"|0x3722c840
@@ -317,6 +327,26 @@ test("does not classify successful status payloads as errors", () => {
 test("does not classify serialized success payloads as suspicious errors", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"ApiResponse [statusCode=SUCCESS, message=Done]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("does not classify serialized no-error messages as suspicious errors", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"ApiResponse [statusCode=SUCCESS, message=No error]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, false);
+  assert.equal(summary.primaryReason, undefined);
+  assert.deepEqual(summary.reasons, []);
+});
+
+test("does not classify benign NO_ERROR status codes as suspicious errors", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|response|"ApiResponse [statusCode=NO_ERROR, message=Done]"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, false);
