@@ -24,7 +24,8 @@ module.exports = grammar({
         "APEX_PROFILING",
         "VISUALFORCE",
         "SYSTEM",
-        "WAVE"
+        "WAVE",
+        "DATA_ACCESS"
       ),
 
     log_level: ($) =>

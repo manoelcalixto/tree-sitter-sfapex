@@ -129,6 +129,10 @@
         {
           "type": "STRING",
           "value": "WAVE"
+        },
+        {
+          "type": "STRING",
+          "value": "DATA_ACCESS"
         }
       ]
     },

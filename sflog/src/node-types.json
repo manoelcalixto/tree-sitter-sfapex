@@ -337,6 +337,10 @@
     "named": false
   },
   {
+    "type": "DATA_ACCESS",
+    "named": false
+  },
+  {
     "type": "DB",
     "named": false
   },
