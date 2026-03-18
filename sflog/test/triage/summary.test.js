@@ -174,9 +174,33 @@ test("classifies plain dml messages stored in variables", () => {
   ]);
 });
 
+test("classifies dml status-code payloads stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|saveError|"REQUIRED_FIELD_MISSING, Required fields are missing: [Name]"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "DML failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "dml_failure",
+  ]);
+});
+
 test("classifies plain assertion messages stored in variables", () => {
   const summary = summarizeLog(`
 17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"Assertion Failed: expected 1, got 2"|0x3722c840
+`);
+
+  assert.equal(summary.hasErrors, true);
+  assert.equal(summary.primaryReason, "Assertion failure");
+  assert.deepEqual(summary.reasons.map((reason) => reason.code), [
+    "assertion_failure",
+  ]);
+});
+
+test("classifies bare assertion messages stored in variables", () => {
+  const summary = summarizeLog(`
+17:11:52.319 (372616766)|VARIABLE_ASSIGNMENT|[131]|msg|"Assertion Failed"|0x3722c840
 `);
 
   assert.equal(summary.hasErrors, true);

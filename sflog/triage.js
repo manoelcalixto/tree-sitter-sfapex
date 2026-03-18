@@ -74,7 +74,8 @@ const DIAGNOSTICS = [
       if (
         eventType === "VARIABLE_ASSIGNMENT" &&
         !looksLikeErrorBearingVariableValue(candidate) &&
-        !looksLikePlainDmlMessage(candidate)
+        !looksLikePlainDmlMessage(candidate) &&
+        !looksLikePlainDmlStatusMessage(candidate)
       ) {
         return false;
       }
@@ -168,12 +169,18 @@ function looksLikePlainValidationMessage(text) {
 
 function looksLikePlainDmlMessage(text) {
   return /\b(?:Insert|Update|Upsert|Delete|Merge) failed\. First exception on row\b/i.test(
-    text
+    normalizeVariableValue(text)
   );
 }
 
 function looksLikePlainAssertionMessage(text) {
-  return /\bAssertion Failed\b(?=[:.])/i.test(normalizeVariableValue(text));
+  return /\bAssertion Failed\b(?=[:.]|$)/i.test(normalizeVariableValue(text));
+}
+
+function looksLikePlainDmlStatusMessage(text) {
+  return /^(?:REQUIRED_FIELD_MISSING|FIELD_INTEGRITY_EXCEPTION|DUPLICATE_VALUE|INVALID_FIELD_FOR_INSERT_UPDATE|STRING_TOO_LONG|INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST|INVALID_CROSS_REFERENCE_KEY|CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY|DELETE_FAILED|ENTITY_IS_DELETED)(?=[,:]|$)/.test(
+    normalizeVariableValue(text)
+  );
 }
 
 function normalizeVariableValue(text) {
