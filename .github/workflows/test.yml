@@ -24,9 +24,6 @@ jobs:
         with:
           cache: npm
           node-version: 20
-      - name: Npm install node-gyp-build
-        run: |
-          npm i node-gyp-build
       - name: Npm install
         run: |
           npm ci
